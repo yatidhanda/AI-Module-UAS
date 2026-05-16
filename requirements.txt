@@ -1,0 +1,16 @@
+ultralytics
+opencv-python
+supervision
+numpy
+pandas
+pydantic
+pyyaml
+requests
+streamlit
+folium
+streamlit-folium
+fastapi
+uvicorn
+loguru
+pytest
+python-multipart

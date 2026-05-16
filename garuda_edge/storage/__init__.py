@@ -1,0 +1,1 @@
+"""Audit-oriented event storage."""

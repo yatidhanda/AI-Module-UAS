@@ -1,0 +1,4 @@
+horizontal_fov_deg: 70
+vertical_fov_deg: 43
+default_alt_m: 80
+default_gimbal_tilt_deg: -45

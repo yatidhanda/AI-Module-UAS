@@ -1,0 +1,91 @@
+mission_id: garudaedge-visdrone-eval-001
+mission_name: GarudaEdge VisDrone ISR Evaluation
+mission_phase: aerial_scene_assessment
+sector_id: VISDRONE-SIM-SECTOR-01
+area_of_interest: multi-scenario aerial test range
+task_type: human_in_the_loop_isr_detection_tracking_geolocation
+ruleset: human_in_the_loop_isr_demo
+human_review_required: true
+
+priority_classes:
+  - car
+  - van
+  - truck
+  - bus
+  - motor
+  - pedestrian
+  - people
+  - bicycle
+  - tricycle
+
+geo_lock_objectives:
+  enabled: true
+  target_classes:
+    - truck
+    - bus
+    - van
+    - car
+  min_confidence: 0.60
+  max_geo_uncertainty_m: 60
+  min_track_age_frames: 30
+  require_human_review: true
+
+mission_completion:
+  objective: evaluate_detection_tracking_geolocation_across_visdrone_scenarios
+  required_scenarios:
+    - vehicle_heavy_road
+    - urban_intersection
+    - pedestrian_overhead
+    - high_altitude_tiny_vehicle
+    - moving_drifting_camera
+  completion_rules:
+    min_events_per_scenario: 50
+    min_tracks_per_scenario: 3
+    require_dashboard_review: true
+    require_operator_action_log: false
+
+operator_policy:
+  human_review_required: true
+  allow_autonomous_sensor_cueing: true
+  allow_final_authorization: false
+  allow_engagement_actions: false
+
+allowed_operator_actions:
+  - continue_observation
+  - request_recheck
+  - store_evidence
+  - notify_operator
+  - escalate_to_c2
+  - mark_false_positive
+  - mark_low_confidence
+  - request_sensor_confirmation
+  - return_to_base
+  - hold_position
+  - end_mission_review
+
+confidence_behavior:
+  low_confidence_action: request_sensor_confirmation
+  degraded_link_action: store_evidence
+  high_geo_uncertainty_action: continue_observation
+
+gemma_context:
+  analyst_role: ISR sensor-fusion analyst
+  summary_style: concise_operator_brief
+  include_mission_completion_estimate: true
+  include_next_step_recommendation: true
+  include_geo_lock_readiness: true
+  include_mission_health: true
+  mention_geo_uncertainty: true
+  mention_degraded_sensors: true
+  mention_policy_corrections: true
+  mention_threat_assessment: true
+  avoid_hostile_intent_inference: true
+
+notes:
+  - Demo uses VisDrone MOT sequences converted into MP4 scenario clips.
+  - Telemetry is synthetic and aligned to video frames for fusion testing.
+  - Geo-track estimates are approximate and for human review only.
+  - Threat level means mission/platform risk estimate, not hostile intent or engagement authorization.
+  - Human review is required for all operational decisions.
+  - The system supports ISR detection, tracking, confidence scoring, evidence packaging and C2 reporting.
+  - The system does not perform autonomous engagement, weapon release or final high-consequence authorization.

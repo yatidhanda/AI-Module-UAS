@@ -1,0 +1,9 @@
+human_review_required_always: true
+allowed_actions:
+  - continue_observation
+  - store_evidence
+  - notify_operator
+  - request_sensor_confirmation
+  - mark_low_confidence
+  - reacquire_track
+  - center_camera_on_track

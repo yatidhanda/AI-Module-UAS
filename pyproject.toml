@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "garuda-edge"
+version = "0.1.0"
+description = "Human-in-the-loop UAS ISR fusion decision-support MVP"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+include = ["garuda_edge*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"

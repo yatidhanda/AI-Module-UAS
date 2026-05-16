@@ -1,0 +1,146 @@
+version: 1
+description: Mission/platform risk library for human-in-the-loop ISR review.
+score_range: [0, 100]
+
+levels:
+  low:
+    min: 0
+    max: 29
+    color: green
+    label: Low
+  medium:
+    min: 30
+    max: 59
+    color: amber
+    label: Medium
+  high:
+    min: 60
+    max: 79
+    color: orange
+    label: High
+  critical:
+    min: 80
+    max: 100
+    color: red
+    label: Critical
+
+default_object:
+  base_score: 10
+  rationale: Unknown or normal object. Requires context before assigning higher risk.
+
+object_profiles:
+  pedestrian:
+    base_score: 10
+    category: person
+    rationale: Person-class object. Review depends on mission context.
+    aliases: [person, people, pedestrian]
+  people:
+    base_score: 10
+    category: person
+    rationale: Person-class object group. Review depends on mission context.
+    aliases: [people, person_group]
+  bicycle:
+    base_score: 8
+    category: civilian_mobility
+    rationale: Low platform risk under normal ISR monitoring.
+    aliases: [bike, bicycle]
+  motor:
+    base_score: 12
+    category: civilian_vehicle
+    rationale: Light vehicle. Usually low-to-medium mission risk depending on mission.
+    aliases: [motorcycle, motorbike, motor]
+  car:
+    base_score: 15
+    category: vehicle
+    rationale: Vehicle-class object. Mission relevance depends on context and persistence.
+    aliases: [car, sedan]
+  van:
+    base_score: 20
+    category: vehicle
+    rationale: Larger vehicle. Slightly higher mission relevance than car.
+    aliases: [van]
+  truck:
+    base_score: 25
+    category: vehicle
+    rationale: Heavy vehicle. May be higher priority in route surveillance or logistics monitoring.
+    aliases: [truck, lorry]
+  bus:
+    base_score: 18
+    category: vehicle
+    rationale: Large vehicle. Usually moderate relevance in road surveillance.
+    aliases: [bus]
+  tricycle:
+    base_score: 10
+    category: civilian_mobility
+    rationale: Low platform risk under normal monitoring.
+    aliases: [tricycle]
+  awning-tricycle:
+    base_score: 10
+    category: civilian_mobility
+    rationale: Low platform risk under normal monitoring.
+    aliases: [awning-tricycle]
+
+  jammer:
+    base_score: 90
+    category: electronic_warfare
+    rationale: Potential threat to communications, telemetry, GPS, or command link integrity.
+    aliases: [jammer, rf_jammer, signal_jammer, electronic_warfare]
+  radar:
+    base_score: 80
+    category: sensor_system
+    rationale: Radar-like object may indicate surveillance or airspace monitoring capability.
+    aliases: [radar, radar_station, surveillance_radar]
+  air_defense:
+    base_score: 95
+    category: air_defense
+    rationale: Air-defense-like object is high mission/platform risk for UAS operations.
+    aliases: [air_defense, sam, anti_air, aa_system]
+  military_truck:
+    base_score: 65
+    category: military_vehicle
+    rationale: Military logistics/support vehicle. Higher mission relevance than civilian truck.
+    aliases: [military_truck, tactical_truck]
+  armored_vehicle:
+    base_score: 75
+    category: military_vehicle
+    rationale: Armored vehicle-like object. High mission relevance if confirmed.
+    aliases: [armored_vehicle, apc, ifv]
+  tank:
+    base_score: 85
+    category: military_vehicle
+    rationale: Heavy armored vehicle-like object. High mission relevance if confirmed.
+    aliases: [tank]
+  command_post:
+    base_score: 70
+    category: command_infrastructure
+    rationale: Command/infrastructure-like object. Human review required.
+    aliases: [command_post, c2_node, comms_node]
+
+context_modifiers:
+  mission_priority_class_bonus: 10
+  watchlist_track_bonus: 15
+  geo_lock_requested_bonus: 10
+  persistent_track_bonus:
+    min_age_frames: 60
+    bonus: 8
+  high_confidence_bonus:
+    min_confidence: 0.75
+    bonus: 8
+  low_confidence_penalty:
+    max_confidence: 0.45
+    penalty: 15
+  high_geo_uncertainty_penalty:
+    min_uncertainty_m: 60
+    penalty: 10
+  degraded_link_bonus_for_ew_categories:
+    categories: [electronic_warfare, sensor_system, air_defense]
+    packet_loss_threshold: 0.10
+    latency_threshold_ms: 300
+    bonus: 12
+  degraded_sensor_penalty:
+    penalty: 8
+
+alerting:
+  high_alert_threshold: 60
+  critical_alert_threshold: 80
+  max_alerts_visible: 8

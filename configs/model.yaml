@@ -1,0 +1,10 @@
+yolo_model: yolov8n.pt
+yolo_conf_threshold: 0.25
+ollama_model: gemma4:e4b
+ollama_base_url: http://localhost:11434
+gemma_temperature: 0.1
+gemma_call_interval_frames: 60
+ollama_timeout_s: 120
+ollama_fallback_models:
+  - gemma3:4b
+  - gemma3n:e4b

@@ -1,0 +1,29 @@
+dataset_root: data/datasets/VisDrone
+
+possible_splits:
+  - VisDrone2019-MOT-train
+  - VisDrone2019-MOT-val
+  - VisDrone2019-MOT-test-dev
+  - VisDrone2019-VID-train
+  - VisDrone2019-VID-val
+  - VisDrone2019-VID-test-dev
+
+class_names:
+  0: pedestrian
+  1: people
+  2: bicycle
+  3: car
+  4: van
+  5: truck
+  6: tricycle
+  7: awning-tricycle
+  8: bus
+  9: motor
+
+vehicle_class_ids: [3, 4, 5, 8, 9]
+person_class_ids: [0, 1]
+two_wheeler_class_ids: [2, 6, 7, 9]
+
+default_fps: 30
+default_output_video_fps: 15
+default_max_frames: 300

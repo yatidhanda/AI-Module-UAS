@@ -1,0 +1,5 @@
+high_threshold: 0.75
+medium_threshold: 0.5
+max_geo_uncertainty_m: 60
+packet_loss_warning: 0.1
+latency_warning_ms: 300

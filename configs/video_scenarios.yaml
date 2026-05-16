@@ -1,0 +1,30 @@
+vehicle_heavy_road:
+  description: Vehicle-heavy drone sequence, useful for road/bridge/traffic testing.
+  min_vehicle_count_per_frame_avg: 5
+  min_vehicle_track_count: 8
+  prefer_vehicle_ratio: true
+  priority_classes: [car, van, truck, bus, motor]
+
+urban_intersection:
+  description: Dense mixed urban traffic/pedestrian scene.
+  min_total_objects_per_frame_avg: 10
+  min_vehicle_count_per_frame_avg: 4
+  min_person_count_per_frame_avg: 3
+  require_class_diversity: true
+
+pedestrian_overhead:
+  description: Pedestrian-heavy overhead drone scene.
+  min_person_count_per_frame_avg: 8
+  max_vehicle_count_per_frame_avg: 10
+  priority_classes: [pedestrian, people]
+
+high_altitude_tiny_vehicle:
+  description: Drone sequence with tiny vehicle objects, usually high-altitude or wide-FOV.
+  min_vehicle_track_count: 5
+  max_median_box_area_ratio: 0.0025
+  priority_classes: [car, van, truck, bus, motor]
+
+moving_drifting_camera:
+  description: Sequence with significant camera motion/drift, useful for tracking stress tests.
+  min_camera_motion_score: 0.15
+  min_total_objects_per_frame_avg: 3
