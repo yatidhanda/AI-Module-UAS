@@ -108,6 +108,7 @@ def main() -> None:
     latest_decisions: dict[str, GemmaDecision] = {}
     latest_analyst_metadata: dict[str, dict[str, object]] = {}
     event_history: list[dict[str, object]] = []
+    latest_platform_state: dict[str, object] | None = None
     start = time.time()
 
     frame_id = 0
@@ -170,8 +171,10 @@ def main() -> None:
             event.policy_result = result
             if result.corrected:
                 event.audit_notes.extend(result.corrections)
+            final_event_payload = event.model_dump(mode="json")
+            latest_platform_state = final_event_payload.get("platform_state") or latest_platform_state
             store.append_event(event)
-            event_history.append(event.model_dump(mode="json"))
+            event_history.append(final_event_payload)
 
         writer.write(draw_tracks(frame, tracks))
         frame_id += 1
@@ -188,6 +191,7 @@ def main() -> None:
         "gemma_calls": gemma_calls,
         "events_path": str(output_dir / "events.jsonl"),
         "annotated_video_path": str(out_video),
+        "latest_platform_state": latest_platform_state,
     }
     (output_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(json.dumps(summary, indent=2))

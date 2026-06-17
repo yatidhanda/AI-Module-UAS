@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from garuda_edge.dashboard.ownship import extract_latest_ownship_state
 from garuda_edge.ingestion.schemas import ISREvent
 
 
@@ -74,6 +75,7 @@ class EventStore:
             "active_tracks": len(tracks),
             "average_confidence": round(avg_conf, 3),
             "latest_decision": (events[-1].get("policy_result") or {}).get("final_decision", {}).get("decision") if events else None,
+            "latest_platform_state": extract_latest_ownship_state(events),
         }
 
     def _write_summary(self) -> None:

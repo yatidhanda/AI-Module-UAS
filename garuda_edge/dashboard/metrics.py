@@ -13,6 +13,7 @@ from garuda_edge.dashboard.data_loader import (
     extract_risk_flags,
     extract_threat_assessment,
 )
+from garuda_edge.dashboard.ownship import extract_platform_state
 
 
 def compute_dashboard_metrics(
@@ -94,13 +95,16 @@ def link_sensor_summary(events: list[dict[str, Any]]) -> dict[str, Any]:
     if not events:
         return {}
     latest = events[-1]
+    state = extract_platform_state(latest)
     platform = latest.get("platform") if isinstance(latest.get("platform"), dict) else {}
     link = latest.get("link") if isinstance(latest.get("link"), dict) else {}
     return {
-        "sensor_health": platform.get("sensor_health", "Not specified"),
+        "sensor_health": state.get("sensor_health") or platform.get("sensor_health", "Not specified"),
         "mission_phase": platform.get("mission_phase", "Not specified"),
-        "packet_loss": link.get("packet_loss", "Not specified"),
-        "latency_ms": link.get("latency_ms", "Not specified"),
+        "gps_quality": state.get("gps_quality") or "Not specified",
+        "link_quality": state.get("link_quality") or link.get("link_quality", "Not specified"),
+        "packet_loss": state.get("packet_loss") if state.get("packet_loss") is not None else link.get("packet_loss", "Not specified"),
+        "latency_ms": state.get("latency_ms") if state.get("latency_ms") is not None else link.get("latency_ms", "Not specified"),
         "sync_delta_s": link.get("sync_delta_s", "Not specified"),
     }
 

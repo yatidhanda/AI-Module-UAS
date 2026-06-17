@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from garuda_edge.dashboard.data_loader import extract_decision_label, extract_geo
+from garuda_edge.dashboard.ownship import platform_telemetry_status, project_point, valid_lat_lon
 from garuda_edge.dashboard.styles import alert_badge_class, threat_badge_class
 
 
@@ -110,15 +111,80 @@ def render_threat_alerts(alerts: list[Any]) -> None:
         )
 
 
+def render_ownship_telemetry_panel(ownship_state: dict[str, Any] | None) -> None:
+    status = platform_telemetry_status(ownship_state)
+    status_badge = alert_badge_class(status.get("level"))
+    if not ownship_state or not valid_lat_lon(ownship_state.get("lat"), ownship_state.get("lon")):
+        st.markdown(
+            f"""
+            <div class="panel ownship-panel">
+              <div class="ownship-title-row">
+                <div class="panel-title">Ownship Telemetry</div>
+                <span class="badge {status_badge}">{html.escape(status.get("status", "Telemetry unavailable"))}</span>
+              </div>
+              <div class="small-muted">No platform telemetry found in selected output. Re-run pipeline with telemetry enabled.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    fields = [
+        ("Latitude", _format_lat_lon(ownship_state.get("lat")), "gray"),
+        ("Longitude", _format_lat_lon(ownship_state.get("lon")), "gray"),
+        ("Altitude", _format_meters(ownship_state.get("altitude_m")), "gray"),
+        ("Heading", _format_degrees(ownship_state.get("heading_deg")), "gray"),
+        ("Speed", _format_speed(ownship_state.get("speed_mps")), "gray"),
+        ("Battery", _format_percent_value(ownship_state.get("battery_pct")), _field_level("battery", ownship_state)),
+        ("GPS Quality", _stringify_or_na(ownship_state.get("gps_quality")), _field_level("gps", ownship_state)),
+        ("Link Quality", _stringify_or_na(ownship_state.get("link_quality")), _field_level("link", ownship_state)),
+        ("Packet Loss", _format_packet_loss(ownship_state.get("packet_loss")), _field_level("packet_loss", ownship_state)),
+        ("Latency", _format_latency(ownship_state.get("latency_ms")), _field_level("latency", ownship_state)),
+        ("Latest Frame", _stringify_or_na(ownship_state.get("frame_id")), "gray"),
+        ("Timestamp", _format_seconds(ownship_state.get("timestamp_s")), "gray"),
+    ]
+    items = "\n".join(
+        f"""
+        <div class="ownship-item ownship-item-{html.escape(level)}">
+          <div class="ownship-label">{html.escape(label)}</div>
+          <div class="ownship-value">{html.escape(value)}</div>
+        </div>
+        """
+        for label, value, level in fields
+    )
+    reasons = status.get("reasons") or []
+    reason_text = f" / {'; '.join(str(item) for item in reasons)}" if reasons else ""
+    st.markdown(
+        f"""
+        <div class="panel ownship-panel">
+          <div class="ownship-title-row">
+            <div class="panel-title">Ownship Telemetry</div>
+            <span class="badge {status_badge}">{html.escape(status.get("status", "Telemetry nominal"))}</span>
+          </div>
+          <div class="ownship-grid">{items}</div>
+          <div class="small-muted">Read-only platform state for operator awareness{html.escape(reason_text)}.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_map(
     active_tracks: list[dict[str, Any]],
     events: list[dict[str, Any]],
     mission_context: dict[str, Any],
+    ownship_state: dict[str, Any] | None = None,
+    ownship_trail: list[dict[str, Any]] | None = None,
+    selected_track_id: str = "all",
     show_all_trails: bool = False,
+    show_drone_trail: bool = True,
+    show_selected_track_range_line: bool = True,
+    map_center_mode: str = "Auto",
 ) -> None:
     valid_tracks = [track for track in active_tracks if _valid_lat_lon(track.get("latest_lat"), track.get("latest_lon"))]
-    if not valid_tracks:
-        st.warning("No valid geo-track coordinates available for the selected output root.")
+    has_ownship = bool(ownship_state and valid_lat_lon(ownship_state.get("lat"), ownship_state.get("lon")))
+    if not valid_tracks and not has_ownship:
+        st.warning("No valid ownship or object track coordinates available for the selected output root.")
         return
 
     try:
@@ -128,9 +194,9 @@ def render_map(
         st.warning(f"Map unavailable: {exc}")
         return
 
-    center_track = valid_tracks[0]
+    center = _map_center(ownship_state, valid_tracks, selected_track_id, map_center_mode)
     fmap = folium.Map(
-        location=[center_track["latest_lat"], center_track["latest_lon"]],
+        location=center,
         zoom_start=16,
         tiles="CartoDB dark_matter",
         control_scale=True,
@@ -153,6 +219,67 @@ def render_map(
             ).add_to(fmap)
 
     mission = mission_context.get("display") or {}
+    if show_drone_trail and ownship_trail:
+        trail_points = [
+            [point["lat"], point["lon"]]
+            for point in ownship_trail
+            if valid_lat_lon(point.get("lat"), point.get("lon"))
+        ]
+        if len(trail_points) >= 2:
+            folium.PolyLine(
+                trail_points,
+                color="#38bdf8",
+                weight=2,
+                opacity=0.64,
+                tooltip="Ownship trail",
+            ).add_to(fmap)
+
+    if has_ownship and ownship_state:
+        ownship_location = [ownship_state["lat"], ownship_state["lon"]]
+        ownship_popup = _ownship_popup(ownship_state, mission)
+        folium.CircleMarker(
+            location=ownship_location,
+            radius=9,
+            color="#67e8f9",
+            fill=True,
+            fill_color="#0ea5e9",
+            fill_opacity=0.82,
+            opacity=0.95,
+            weight=2,
+            popup=folium.Popup(ownship_popup, max_width=400),
+            tooltip="DRONE / OWNSHIP",
+        ).add_to(fmap)
+        folium.Marker(
+            location=ownship_location,
+            icon=folium.DivIcon(html=_ownship_marker_html()),
+            popup=folium.Popup(ownship_popup, max_width=400),
+            tooltip="DRONE / OWNSHIP",
+        ).add_to(fmap)
+        heading = _float_or_none(ownship_state.get("heading_deg"))
+        if heading is not None:
+            heading_end = project_point(float(ownship_state["lat"]), float(ownship_state["lon"]), heading, 120.0)
+            folium.PolyLine(
+                [ownship_location, [heading_end[0], heading_end[1]]],
+                color="#7dd3fc",
+                weight=3,
+                opacity=0.78,
+                tooltip=f"Ownship heading {heading:.1f} deg",
+            ).add_to(fmap)
+
+    selected_track = _track_by_id(valid_tracks, selected_track_id)
+    if show_selected_track_range_line and has_ownship and ownship_state and selected_track:
+        folium.PolyLine(
+            [
+                [ownship_state["lat"], ownship_state["lon"]],
+                [selected_track["latest_lat"], selected_track["latest_lon"]],
+            ],
+            color="#bae6fd",
+            weight=2,
+            opacity=0.54,
+            dash_array="6,8",
+            tooltip=f"Range line to {selected_track.get('track_id')}",
+        ).add_to(fmap)
+
     for track in valid_tracks:
         level = str(track.get("confidence_level") or "unknown")
         threat_level = str(track.get("threat_level") or "unknown")
@@ -164,6 +291,7 @@ def render_map(
             icon=folium.Icon(color=_folium_icon_color(level, threat_level), icon="info-sign"),
         ).add_to(fmap)
 
+    render_map_legend()
     st_folium(fmap, use_container_width=True, height=470)
 
 
@@ -187,28 +315,44 @@ def render_track_table(rows: list[dict[str, Any]]) -> None:
         "track_id",
         "object_class",
         "latest_frame",
-        "age_frames",
         "latest_confidence",
         "confidence_level",
         "threat_score",
         "threat_level",
-        "threat_category",
-        "geo_uncertainty_m",
         "geo_lock_status",
-        "latest_lat",
-        "latest_lon",
+        "range_from_drone_m",
+        "bearing_from_drone_deg",
+        "geo_uncertainty_m",
         "last_decision",
         "human_review_required",
-        "last_seen_timestamp_s",
-        "evidence_available",
-        "degraded_flags",
     ]
     frame = frame[[column for column in important if column in frame.columns]]
     if "latest_confidence" in frame.columns:
-        frame["latest_confidence"] = frame["latest_confidence"].map(lambda value: f"{value:.2f}" if pd.notna(value) else "n/a")
+        frame["latest_confidence"] = frame["latest_confidence"].map(lambda value: _format_table_number(value, 2))
     if "threat_score" in frame.columns:
-        frame["threat_score"] = frame["threat_score"].map(lambda value: f"{value:.1f}" if pd.notna(value) else "n/a")
+        frame["threat_score"] = frame["threat_score"].map(lambda value: _format_table_number(value, 1))
+    if "range_from_drone_m" in frame.columns:
+        frame["range_from_drone_m"] = frame["range_from_drone_m"].map(lambda value: _format_table_number(value, 1))
+    if "bearing_from_drone_deg" in frame.columns:
+        frame["bearing_from_drone_deg"] = frame["bearing_from_drone_deg"].map(lambda value: _format_table_number(value, 1))
+    if "geo_uncertainty_m" in frame.columns:
+        frame["geo_uncertainty_m"] = frame["geo_uncertainty_m"].map(lambda value: _format_table_number(value, 1))
     st.dataframe(frame, use_container_width=True, hide_index=True)
+
+
+def render_map_legend() -> None:
+    st.markdown(
+        """
+        <div class="map-legend">
+          <span><i class="legend-swatch legend-ownship"></i>Ownship / drone</span>
+          <span><i class="legend-swatch legend-object"></i>Object track</span>
+          <span><i class="legend-swatch legend-risk"></i>High / critical risk</span>
+          <span><i class="legend-line legend-trail"></i>Drone trail</span>
+          <span><i class="legend-line legend-range"></i>Selected range line</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_downloads(output_root: Path) -> None:
@@ -282,6 +426,8 @@ def _track_popup(track: dict[str, Any], mission: dict[str, Any]) -> str:
         "threat_score": track.get("threat_score"),
         "threat_category": track.get("threat_category"),
         "geo_lock_status": track.get("geo_lock_status"),
+        "range_from_drone_m": _format_meters(track.get("range_from_drone_m")),
+        "bearing_from_drone_deg": _format_degrees(track.get("bearing_from_drone_deg")),
         "frame_id": track.get("latest_frame"),
         "latest_decision": track.get("last_decision"),
         "human_review_required": track.get("human_review_required", True),
@@ -290,6 +436,31 @@ def _track_popup(track: dict[str, Any], mission: dict[str, Any]) -> str:
     }
     rows = "".join(
         f"<tr><td><b>{html.escape(key)}</b></td><td>{html.escape(_stringify(value))}</td></tr>"
+        for key, value in values.items()
+    )
+    return f"<table>{rows}</table>"
+
+
+def _ownship_popup(ownship_state: dict[str, Any], mission: dict[str, Any]) -> str:
+    values = {
+        "label": "DRONE / OWNSHIP",
+        "mission_id": mission.get("mission_id", "Not specified"),
+        "frame_id": ownship_state.get("frame_id"),
+        "timestamp_s": _format_seconds(ownship_state.get("timestamp_s")),
+        "latitude": _format_lat_lon(ownship_state.get("lat")),
+        "longitude": _format_lat_lon(ownship_state.get("lon")),
+        "altitude": _format_meters(ownship_state.get("altitude_m")),
+        "heading": _format_degrees(ownship_state.get("heading_deg")),
+        "speed": _format_speed(ownship_state.get("speed_mps")),
+        "battery": _format_percent_value(ownship_state.get("battery_pct")),
+        "gps_quality": ownship_state.get("gps_quality"),
+        "link_quality": ownship_state.get("link_quality"),
+        "packet_loss": _format_packet_loss(ownship_state.get("packet_loss")),
+        "latency": _format_latency(ownship_state.get("latency_ms")),
+        "sensor_health": ownship_state.get("sensor_health"),
+    }
+    rows = "".join(
+        f"<tr><td><b>{html.escape(key)}</b></td><td>{html.escape(_stringify_or_na(value))}</td></tr>"
         for key, value in values.items()
     )
     return f"<table>{rows}</table>"
@@ -327,11 +498,160 @@ def _folium_icon_color(level: str, threat_level: str | None = None) -> str:
     return "gray"
 
 
+def _map_center(
+    ownship_state: dict[str, Any] | None,
+    valid_tracks: list[dict[str, Any]],
+    selected_track_id: str,
+    mode: str,
+) -> list[float]:
+    mode_normalized = (mode or "Auto").strip().lower()
+    selected_track = _track_by_id(valid_tracks, selected_track_id)
+    has_ownship = bool(ownship_state and valid_lat_lon(ownship_state.get("lat"), ownship_state.get("lon")))
+
+    if mode_normalized == "selected track" and selected_track:
+        return [float(selected_track["latest_lat"]), float(selected_track["latest_lon"])]
+    if mode_normalized == "drone / ownship" and has_ownship and ownship_state:
+        return [float(ownship_state["lat"]), float(ownship_state["lon"])]
+    if mode_normalized == "active tracks" and valid_tracks:
+        return _average_track_center(valid_tracks)
+    if has_ownship and ownship_state:
+        return [float(ownship_state["lat"]), float(ownship_state["lon"])]
+    if selected_track:
+        return [float(selected_track["latest_lat"]), float(selected_track["latest_lon"])]
+    return _average_track_center(valid_tracks)
+
+
+def _average_track_center(valid_tracks: list[dict[str, Any]]) -> list[float]:
+    if not valid_tracks:
+        return [0.0, 0.0]
+    return [
+        sum(float(track["latest_lat"]) for track in valid_tracks) / len(valid_tracks),
+        sum(float(track["latest_lon"]) for track in valid_tracks) / len(valid_tracks),
+    ]
+
+
+def _track_by_id(valid_tracks: list[dict[str, Any]], track_id: str | None) -> dict[str, Any] | None:
+    if not track_id or str(track_id).lower() == "all":
+        return None
+    for track in valid_tracks:
+        if str(track.get("track_id")) == str(track_id):
+            return track
+    return None
+
+
+def _ownship_marker_html() -> str:
+    return """
+    <div style="transform: translate(-50%, -50%);">
+      <div style="width: 78px; text-align: center; color: #e0f2fe; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-shadow: 0 1px 3px #020617;">DRONE</div>
+    </div>
+    """
+
+
 def _valid_lat_lon(lat: Any, lon: Any) -> bool:
     try:
         return lat is not None and lon is not None and -90 <= float(lat) <= 90 and -180 <= float(lon) <= 180
     except (TypeError, ValueError):
         return False
+
+
+def _field_level(field: str, ownship_state: dict[str, Any]) -> str:
+    if field == "battery":
+        battery = _float_or_none(ownship_state.get("battery_pct"))
+        if battery is not None and battery < 15:
+            return "red"
+        if battery is not None and battery < 25:
+            return "amber"
+    if field == "packet_loss":
+        packet_loss = _float_or_none(ownship_state.get("packet_loss"))
+        if packet_loss is not None and packet_loss > 0.25:
+            return "red"
+        if packet_loss is not None and packet_loss > 0.10:
+            return "amber"
+    if field == "latency":
+        latency = _float_or_none(ownship_state.get("latency_ms"))
+        if latency is not None and latency > 800:
+            return "red"
+        if latency is not None and latency > 300:
+            return "amber"
+    if field == "gps":
+        gps = str(ownship_state.get("gps_quality") or "").lower()
+        if gps == "lost":
+            return "red"
+        if gps in {"poor", "degraded"}:
+            return "amber"
+    if field == "link":
+        link = str(ownship_state.get("link_quality") or "").lower()
+        if link in {"lost", "down"}:
+            return "red"
+        if link in {"poor", "degraded"}:
+            return "amber"
+    return "green" if field in {"battery", "gps", "link", "packet_loss", "latency"} else "gray"
+
+
+def _float_or_none(value: Any) -> float | None:
+    try:
+        if value is None:
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _format_table_number(value: Any, precision: int) -> str:
+    try:
+        if pd.isna(value):
+            return "N/A"
+        return f"{float(value):.{precision}f}"
+    except (TypeError, ValueError):
+        return "N/A"
+
+
+def _format_lat_lon(value: Any) -> str:
+    number = _float_or_none(value)
+    return f"{number:.6f}" if number is not None else "N/A"
+
+
+def _format_meters(value: Any) -> str:
+    number = _float_or_none(value)
+    return f"{number:.1f} m" if number is not None else "N/A"
+
+
+def _format_degrees(value: Any) -> str:
+    number = _float_or_none(value)
+    return f"{number:.1f} deg" if number is not None else "N/A"
+
+
+def _format_speed(value: Any) -> str:
+    number = _float_or_none(value)
+    return f"{number:.1f} m/s" if number is not None else "N/A"
+
+
+def _format_percent_value(value: Any) -> str:
+    number = _float_or_none(value)
+    return f"{number:.0f}%" if number is not None else "N/A"
+
+
+def _format_packet_loss(value: Any) -> str:
+    number = _float_or_none(value)
+    if number is None:
+        return "N/A"
+    percent = number * 100 if number <= 1 else number
+    return f"{percent:.1f}%"
+
+
+def _format_latency(value: Any) -> str:
+    number = _float_or_none(value)
+    return f"{number:.0f} ms" if number is not None else "N/A"
+
+
+def _format_seconds(value: Any) -> str:
+    number = _float_or_none(value)
+    return f"{number:.3f} s" if number is not None else "N/A"
+
+
+def _stringify_or_na(value: Any) -> str:
+    text = _stringify(value)
+    return "N/A" if text == "Not specified" else text
 
 
 def _stringify(value: Any) -> str:

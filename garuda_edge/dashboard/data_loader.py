@@ -7,6 +7,12 @@ from typing import Any
 
 import yaml
 
+from garuda_edge.dashboard.ownship import (
+    compute_distance_bearing_between_ownship_and_tracks,
+    extract_latest_ownship_state,
+    extract_ownship_trail,
+    extract_platform_state,
+)
 from garuda_edge.mission.mission_status import evaluate_geo_lock_readiness
 from garuda_edge.threat.threat_library import load_threat_library
 from garuda_edge.threat.threat_scoring import score_threat_for_track
@@ -136,6 +142,12 @@ def append_operator_action(
     selected_threat_level: str | None = None,
     selected_threat_score: float | None = None,
     selected_geo_lock_status: str | None = None,
+    ownship_lat: float | None = None,
+    ownship_lon: float | None = None,
+    ownship_altitude_m: float | None = None,
+    ownship_heading_deg: float | None = None,
+    range_from_drone_m: float | None = None,
+    bearing_from_drone_deg: float | None = None,
 ) -> dict[str, Any]:
     output_root = resolve_project_path(output_root)
     output_root.mkdir(parents=True, exist_ok=True)
@@ -157,6 +169,12 @@ def append_operator_action(
         selected_threat_level=selected_threat_level,
         selected_threat_score=selected_threat_score,
         selected_geo_lock_status=selected_geo_lock_status,
+        ownship_lat=ownship_lat,
+        ownship_lon=ownship_lon,
+        ownship_altitude_m=ownship_altitude_m,
+        ownship_heading_deg=ownship_heading_deg,
+        range_from_drone_m=range_from_drone_m,
+        bearing_from_drone_deg=bearing_from_drone_deg,
     )
     log_path = operator_action_log_path(output_root)
     with log_path.open("a", encoding="utf-8") as fp:
@@ -183,6 +201,12 @@ def build_operator_action(
     selected_threat_level: str | None = None,
     selected_threat_score: float | None = None,
     selected_geo_lock_status: str | None = None,
+    ownship_lat: float | None = None,
+    ownship_lon: float | None = None,
+    ownship_altitude_m: float | None = None,
+    ownship_heading_deg: float | None = None,
+    range_from_drone_m: float | None = None,
+    bearing_from_drone_deg: float | None = None,
 ) -> dict[str, Any]:
     normalized_action = str(action)
     output_root = resolve_project_path(output_root)
@@ -209,6 +233,12 @@ def build_operator_action(
         "selected_threat_level": selected_threat_level,
         "selected_threat_score": selected_threat_score,
         "selected_geo_lock_status": selected_geo_lock_status,
+        "ownship_lat": ownship_lat,
+        "ownship_lon": ownship_lon,
+        "ownship_altitude_m": ownship_altitude_m,
+        "ownship_heading_deg": ownship_heading_deg,
+        "range_from_drone_m": range_from_drone_m,
+        "bearing_from_drone_deg": bearing_from_drone_deg,
     }
 
 

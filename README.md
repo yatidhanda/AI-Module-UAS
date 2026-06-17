@@ -77,13 +77,21 @@ Outputs:
 streamlit run garuda_edge/dashboard/app.py
 ```
 
+## Ownship / Drone Location Layer
+
+The dashboard home screen now shows the drone live/current location from telemetry as a read-only ownship layer. The common operating picture includes a distinct drone/ownship marker, heading line, recent trail, altitude and link-health context, and ownship-relative range/bearing values for geo-located tracks.
+
+The current demo uses synthetic telemetry from `data/telemetry/*.csv` and writes normalized `platform_state` into new event packets. Older outputs remain supported through legacy `platform`, `telemetry`, `drone_state`, and `link` fields. Future autopilot integration can replace the synthetic source with real MAVLink, PX4, or ArduPilot telemetry.
+
+This feature is for operator awareness and C2 situational picture only. It does not send flight commands and does not implement takeoff, land, return-to-base execution, waypoint execution, or autonomous flight control.
+
 ## Using the Operator Dashboard
 
 The Streamlit dashboard is an operator-grade ISR review console for human-in-the-loop monitoring. Use the sidebar `Output root` selector to inspect `data/outputs` or compare VisDrone scenario folders under `data/outputs/visdrone/*`.
 
 The mission context panel loads `configs/mission.yaml` by default and displays mission ID, phase, sector, ruleset, area of interest, task type, priority classes, and notes when present. Missing fields are shown as `Not specified`.
 
-The top KPI cards summarize total events, active tracks, confidence levels, Gemma-analyzed events, policy corrections, operator actions, and latest frame. The map shows latest geo-track locations by confidence level, with optional trail markers. Tabs expose mission overview, track detail, evidence, analyst/policy review, event JSON downloads, and operator action logging.
+The top KPI cards summarize total events, active tracks, confidence levels, Gemma-analyzed events, policy corrections, operator actions, and latest frame. The map shows the drone/ownship location, heading, trail, latest geo-track locations by confidence level, and optional selected-track range line. Tabs expose mission overview, track detail, evidence, analyst/policy review, event JSON downloads, and operator action logging.
 
 Confidence colors are intentionally sparse: high is muted green, medium is amber, low/degraded is red, and unknown/system information is gray or slate. Policy corrections and all operator actions remain visible for audit; every operational decision remains human reviewed.
 

@@ -129,6 +129,62 @@ div[data-testid="stMetricValue"] {
   margin-top: 0.16rem;
 }
 
+.ownship-panel {
+  border-color: rgba(103, 232, 249, 0.28);
+}
+
+.ownship-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.55rem;
+}
+
+.ownship-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.ownship-item {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 7px;
+  padding: 0.52rem 0.62rem;
+  min-height: 64px;
+}
+
+.ownship-item-green {
+  border-color: rgba(74, 222, 128, 0.32);
+}
+
+.ownship-item-amber {
+  border-color: rgba(245, 158, 11, 0.58);
+  background: rgba(245, 158, 11, 0.09);
+}
+
+.ownship-item-red {
+  border-color: rgba(248, 113, 113, 0.58);
+  background: rgba(127, 29, 29, 0.16);
+}
+
+.ownship-label {
+  color: var(--muted);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ownship-value {
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.92rem;
+  margin-top: 0.18rem;
+  overflow-wrap: anywhere;
+}
+
 .badge-row {
   display: flex;
   flex-wrap: wrap;
@@ -150,6 +206,50 @@ div[data-testid="stMetricValue"] {
 .badge-red { color: #fecaca; border-color: rgba(248, 113, 113, 0.55); background: rgba(248, 113, 113, 0.13); }
 .badge-gray { color: #d1d5db; border-color: rgba(156, 163, 175, 0.4); background: rgba(156, 163, 175, 0.1); }
 .badge-blue { color: #bfdbfe; border-color: rgba(96, 165, 250, 0.48); background: rgba(96, 165, 250, 0.1); }
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(7, 17, 31, 0.58);
+  border-radius: 7px;
+  padding: 0.45rem 0.6rem;
+  margin: 0.3rem 0 0.55rem;
+  color: #cbd5e1;
+  font-size: 0.76rem;
+}
+
+.map-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 999px;
+  border: 1px solid rgba(226, 232, 240, 0.55);
+}
+
+.legend-ownship { background: #0ea5e9; border-color: #67e8f9; }
+.legend-object { background: #22c55e; border-color: #86efac; }
+.legend-risk { background: #ef4444; border-color: #fecaca; }
+
+.legend-line {
+  display: inline-block;
+  width: 1.45rem;
+  height: 0;
+  border-top: 2px solid #38bdf8;
+}
+
+.legend-range {
+  border-top: 2px dashed #bae6fd;
+}
 
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;

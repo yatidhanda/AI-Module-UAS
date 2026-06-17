@@ -41,14 +41,20 @@ class TelemetryPacket(GarudaModel):
     lat: float
     lon: float
     alt_m: float
+    altitude_m: float | None = None
+    heading_deg: float | None = None
     roll_deg: float
     pitch_deg: float
     yaw_deg: float
+    speed_mps: float | None = None
+    airspeed_mps: float | None = None
+    groundspeed_mps: float | None = None
     gimbal_pan_deg: float
     gimbal_tilt_deg: float
     battery_pct: float
     packet_loss: float
     latency_ms: float
+    link_quality: str | None = None
     vibration: str
     gps_quality: str
     mission_phase: str
@@ -105,6 +111,7 @@ class ISREvent(GarudaModel):
     track_age_frames: int
     track_stability: float = Field(ge=0.0, le=1.0)
     platform: dict[str, Any]
+    platform_state: dict[str, Any] | None = None
     link: dict[str, Any]
     geo_estimate: GeoEstimate
     confidence: ConfidenceResult

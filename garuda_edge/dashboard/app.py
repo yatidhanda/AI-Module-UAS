@@ -17,6 +17,7 @@ from garuda_edge.dashboard.components import (
     render_important_frame_cards,
     render_map,
     render_mission_panel,
+    render_ownship_telemetry_panel,
     render_status_panel,
     render_track_table,
     render_threat_alerts,
@@ -51,6 +52,11 @@ from garuda_edge.dashboard.data_loader import (
     resolve_project_path,
     scenario_name_from_output_root,
     select_important_frames,
+)
+from garuda_edge.dashboard.ownship import (
+    compute_distance_bearing_between_ownship_and_tracks,
+    extract_latest_ownship_state,
+    extract_ownship_trail,
 )
 from garuda_edge.dashboard.metrics import (
     build_alerts,
@@ -121,6 +127,8 @@ def main() -> None:
         mission_context,
         threat_library,
     )
+    ownship_state = extract_latest_ownship_state(events)
+    ownship_trail = extract_ownship_trail(events, max_points=controls["ownship_trail_max_points"])
     health = output_root_health(selected_output, events)
     scenario_name = scenario_name_from_output_root(selected_output)
 
@@ -130,7 +138,10 @@ def main() -> None:
         object_class=controls["object_class_filter"],
         track_id=controls["track_filter"],
     )
-    active_tracks = extract_latest_track_state(filtered_events)
+    active_tracks = compute_distance_bearing_between_ownship_and_tracks(
+        ownship_state,
+        extract_latest_track_state(filtered_events),
+    )
     metrics = compute_dashboard_metrics(filtered_events, active_tracks, operator_actions)
     latest = latest_event(filtered_events)
     alert_cfg = threat_library.get("alerting") if isinstance(threat_library.get("alerting"), dict) else {}
@@ -143,6 +154,7 @@ def main() -> None:
 
     render_header(selected_output, scenario_name, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     render_mission_panel(mission_context)
+    render_ownship_telemetry_panel(ownship_state)
     render_kpis(metrics)
     render_alert_strip(build_alerts(filtered_events, active_tracks))
     render_threat_alerts(threat_alerts)
@@ -152,7 +164,18 @@ def main() -> None:
         return
 
     st.markdown('<div class="panel-title">Common Operating Picture</div>', unsafe_allow_html=True)
-    render_map(active_tracks, filtered_events, mission_context, controls["show_all_trails"])
+    render_map(
+        active_tracks,
+        filtered_events,
+        mission_context,
+        ownship_state=ownship_state,
+        ownship_trail=ownship_trail,
+        selected_track_id=controls["track_filter"],
+        show_all_trails=controls["show_all_trails"],
+        show_drone_trail=controls["show_drone_trail"],
+        show_selected_track_range_line=controls["show_selected_track_range_line"],
+        map_center_mode=controls["map_center_mode"],
+    )
 
     st.markdown('<div class="panel-title">Active Tracks</div>', unsafe_allow_html=True)
     render_track_table(active_tracks)
@@ -164,6 +187,7 @@ def main() -> None:
         latest=latest,
         operator_actions=operator_actions,
         mission_context=mission_context,
+        ownship_state=ownship_state,
         key_prefix="top",
     )
 
@@ -181,6 +205,7 @@ def main() -> None:
         threat_alerts=threat_alerts,
         mission_status=mission_status,
         health=health,
+        ownship_state=ownship_state,
         show_raw_json=controls["show_raw_json"],
         selected_track=controls["track_filter"],
     )
@@ -232,8 +257,23 @@ def render_sidebar() -> tuple[Path, str, dict[str, Any]]:
         key_prefix="sidebar_track",
         placeholder="Type or paste track ID",
     )
+    st.sidebar.markdown("### Ownship / Map")
+    show_drone_trail = st.sidebar.toggle("Show drone trail", value=True)
+    show_selected_track_range_line = st.sidebar.toggle("Show selected track range line", value=True)
+    ownship_trail_max_points = st.sidebar.slider(
+        "Ownship trail max points",
+        min_value=20,
+        max_value=1000,
+        value=200,
+        step=20,
+    )
+    map_center_mode = st.sidebar.selectbox(
+        "Center map on",
+        ["Drone / Ownship", "Active Tracks", "Selected Track", "Auto"],
+        index=3,
+    )
     show_raw_json = st.sidebar.toggle("Show raw JSON", value=False)
-    show_all_trails = st.sidebar.toggle("Show all map trails", value=False)
+    show_all_trails = st.sidebar.toggle("Show object track trail points", value=False)
     auto_refresh = st.sidebar.toggle("Auto-refresh", value=False)
     if auto_refresh:
         st.sidebar.caption("Auto-refresh is enabled for operator review; use Refresh Data to force an immediate reload.")
@@ -246,6 +286,10 @@ def render_sidebar() -> tuple[Path, str, dict[str, Any]]:
         "track_filter": track_filter,
         "show_raw_json": show_raw_json,
         "show_all_trails": show_all_trails,
+        "show_drone_trail": show_drone_trail,
+        "show_selected_track_range_line": show_selected_track_range_line,
+        "ownship_trail_max_points": ownship_trail_max_points,
+        "map_center_mode": map_center_mode,
         "auto_refresh": auto_refresh,
     }
 
@@ -304,13 +348,23 @@ def render_tabs(
     threat_alerts: list[Any],
     mission_status: dict[str, Any],
     health: dict[str, Any],
+    ownship_state: dict[str, Any] | None,
     show_raw_json: bool,
     selected_track: str,
 ) -> None:
     tabs = st.tabs(["Mission Overview", "Tracks", "Evidence", "Analyst & Policy", "Events / JSON", "Operator Log"])
     with tabs[0]:
         render_mission_overview(
-            output_root, events, summary, latest, mission_context, health, operator_actions, threat_alerts, mission_status
+            output_root,
+            events,
+            summary,
+            latest,
+            mission_context,
+            health,
+            operator_actions,
+            threat_alerts,
+            mission_status,
+            ownship_state,
         )
     with tabs[1]:
         render_tracks_tab(events, active_tracks, persisted_tracks, selected_track)
@@ -321,7 +375,16 @@ def render_tabs(
     with tabs[4]:
         render_events_json_tab(output_root, events, latest, show_raw_json)
     with tabs[5]:
-        render_operator_log_tab(output_root, scenario_name, events, active_tracks, latest, operator_actions, mission_context)
+        render_operator_log_tab(
+            output_root,
+            scenario_name,
+            events,
+            active_tracks,
+            latest,
+            operator_actions,
+            mission_context,
+            ownship_state,
+        )
 
 
 def render_mission_overview(
@@ -334,9 +397,10 @@ def render_mission_overview(
     operator_actions: list[dict[str, Any]],
     threat_alerts: list[Any],
     mission_status: dict[str, Any],
+    ownship_state: dict[str, Any] | None,
 ) -> None:
     st.markdown('<div class="section-callout">Human review required for all operational decisions.</div>', unsafe_allow_html=True)
-    render_mission_health_panels(output_root, mission_status, latest, mission_context)
+    render_mission_health_panels(output_root, mission_status, latest, mission_context, ownship_state)
     render_threat_alerts(threat_alerts)
     c1, c2 = st.columns([1, 1])
     with c1:
@@ -371,6 +435,7 @@ def render_mission_health_panels(
     mission_status: dict[str, Any],
     latest: dict[str, Any] | None,
     mission_context: dict[str, Any],
+    ownship_state: dict[str, Any] | None,
 ) -> None:
     completion = mission_status.get("mission_completion_estimate") if isinstance(mission_status, dict) else {}
     health = mission_status.get("mission_health") if isinstance(mission_status, dict) else {}
@@ -417,6 +482,10 @@ def render_mission_health_panels(
                     scenario_name=scenario_name_from_output_root(output_root),
                     threat_score=threat.get("score"),
                     threat_level=threat.get("level"),
+                    ownship_lat=(ownship_state or {}).get("lat"),
+                    ownship_lon=(ownship_state or {}).get("lon"),
+                    ownship_altitude_m=(ownship_state or {}).get("altitude_m"),
+                    ownship_heading_deg=(ownship_state or {}).get("heading_deg"),
                 )
                 st.success(f"Operator action logged to {payload['operator_log_path']}")
                 st.cache_data.clear()
@@ -641,6 +710,7 @@ def render_operator_log_tab(
     latest: dict[str, Any] | None,
     operator_actions: list[dict[str, Any]],
     mission_context: dict[str, Any],
+    ownship_state: dict[str, Any] | None,
 ) -> None:
     st.subheader("Human Operator Action Panel")
     render_operator_action_console(
@@ -651,6 +721,7 @@ def render_operator_log_tab(
         latest=latest,
         operator_actions=operator_actions,
         mission_context=mission_context,
+        ownship_state=ownship_state,
         key_prefix="tab",
     )
 
@@ -670,6 +741,7 @@ def render_operator_action_console(
     latest: dict[str, Any] | None,
     operator_actions: list[dict[str, Any]],
     mission_context: dict[str, Any],
+    ownship_state: dict[str, Any] | None,
     key_prefix: str,
 ) -> None:
     st.markdown('<div class="action-console"><div class="panel-title">Operator Action Console</div>', unsafe_allow_html=True)
@@ -698,6 +770,7 @@ def render_operator_action_console(
     preview = get_selected_track_preview(selected_track, events, output_root)
     preview_event = preview.get("event") if isinstance(preview, dict) and isinstance(preview.get("event"), dict) else {}
     preview_metadata = _preview_metadata(preview_event, preview, selected_track)
+    selected_track_row = _active_track_by_id(active_tracks, selected_track)
     left, right = st.columns([1, 1.2])
     with left:
         st.markdown('<div class="track-preview-card"><div class="image-card-title">Selected Track Preview</div>', unsafe_allow_html=True)
@@ -725,6 +798,16 @@ def render_operator_action_console(
             key=f"{key_prefix}_action",
         )
         notes = st.text_input("Operator notes", value="", key=f"{key_prefix}_notes")
+        st.markdown("Ownship-relative context")
+        st.write(
+            {
+                "range_from_drone_m": _round_or_na(selected_track_row.get("range_from_drone_m"), 1),
+                "bearing_from_drone_deg": _round_or_na(selected_track_row.get("bearing_from_drone_deg"), 1),
+                "drone_heading_deg": _round_or_na((ownship_state or {}).get("heading_deg"), 1),
+                "object_geo_lock_status": selected_track_row.get("geo_lock_status") or preview_metadata.get("geo_lock_status"),
+                "threat_level": selected_track_row.get("threat_level") or preview_metadata.get("threat_level"),
+            }
+        )
     latest_for_track = _latest_action_for_track(operator_actions, selected_track)
     if latest_for_track:
         st.caption(
@@ -736,7 +819,6 @@ def render_operator_action_console(
     if st.button("Submit / Log Action", use_container_width=True, key=f"{key_prefix}_submit_action"):
         event_id = str(preview_event.get("event_id") or (latest or {}).get("event_id") or "")
         mission_display = mission_context.get("display") or {}
-        selected_track_row = _active_track_by_id(active_tracks, selected_track)
         alert_id = None
         if str(selected_track_row.get("threat_level", "")).lower() in {"high", "critical"}:
             alert_id = f"risk-{selected_track}-{selected_track_row.get('latest_frame', 'na')}"
@@ -758,6 +840,12 @@ def render_operator_action_console(
             selected_threat_level=preview_metadata.get("threat_level"),
             selected_threat_score=preview_metadata.get("threat_score"),
             selected_geo_lock_status=preview_metadata.get("geo_lock_status"),
+            ownship_lat=(ownship_state or {}).get("lat"),
+            ownship_lon=(ownship_state or {}).get("lon"),
+            ownship_altitude_m=(ownship_state or {}).get("altitude_m"),
+            ownship_heading_deg=(ownship_state or {}).get("heading_deg"),
+            range_from_drone_m=selected_track_row.get("range_from_drone_m"),
+            bearing_from_drone_deg=selected_track_row.get("bearing_from_drone_deg"),
         )
         st.session_state[message_key] = f"Operator action logged to {payload['operator_log_path']}"
         st.cache_data.clear()
@@ -842,6 +930,15 @@ def _active_track_by_id(active_tracks: list[dict[str, Any]], track_id: str) -> d
         if str(track.get("track_id")) == str(track_id):
             return track
     return {}
+
+
+def _round_or_na(value: Any, precision: int = 1) -> str:
+    try:
+        if value is None or pd.isna(value):
+            return "N/A"
+        return f"{float(value):.{precision}f}"
+    except (TypeError, ValueError):
+        return "N/A"
 
 
 def _deterministic_next_step(mission_status: dict[str, Any]) -> dict[str, Any]:
