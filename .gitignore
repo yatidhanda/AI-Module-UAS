@@ -5,10 +5,21 @@ __pycache__/
 .env
 .env.*
 .DS_Store
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+.credentials/
+credentials/
+secrets/
 runs/
 *.pt
 data/input_videos/*
 data/datasets/
+data/dataset_builder/
+data/annotation_exports/
+data/downloads/
+data/quarantine/
+data/cache/
 data/outputs/*
 data/frames/*
 data/evidence/*
@@ -16,3 +27,14 @@ data/evidence/*
 !data/outputs/.gitkeep
 !data/frames/.gitkeep
 !data/evidence/.gitkeep
+
+# The Part A corpus and generated dataset builds belong under GARUDA_DATA_ROOT
+# (~/GarudaEdgeData by default), never inside this checkout. These rules are a
+# final guard if that root is accidentally pointed here.
+GarudaEdgeData/
+workspaces/*/corpus/
+workspaces/*/quarantine/
+workspaces/*/annotation/
+workspaces/*/metadata.sqlite3*
+datasets/*/
+*.part

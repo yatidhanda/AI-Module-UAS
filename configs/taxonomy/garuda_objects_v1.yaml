@@ -1,0 +1,119 @@
+taxonomy_name: garuda_objects
+version: "1.0.0"
+description: >-
+  Broad, visually supportable detection categories. Search terms are discovery hints,
+  never annotations. This taxonomy does not modify the meanings of classes emitted by
+  the existing runtime model; a future model trained on this dataset will expose these
+  exact names through the existing YOLODetector names interface.
+classes:
+  - id: 0
+    name: person
+    description: A visible individual; groups are boxed person-by-person when possible.
+  - id: 1
+    name: bicycle
+    description: Pedal bicycle, with or without a rider.
+  - id: 2
+    name: motorcycle
+    description: Powered two-wheeler, including scooters.
+  - id: 3
+    name: car
+    description: Passenger car or visually similar light civilian vehicle.
+  - id: 4
+    name: van
+    description: Van or minibus form factor.
+  - id: 5
+    name: bus
+    description: Passenger bus or coach.
+  - id: 6
+    name: truck
+    description: Civilian or unarmored cargo truck; identity and ownership are not inferred.
+  - id: 7
+    name: tracked_armored_vehicle
+    description: Visibly tracked armored vehicle; exact platform identity is not required.
+  - id: 8
+    name: wheeled_armored_vehicle
+    description: Visibly wheeled armored vehicle; exact platform identity is not required.
+  - id: 9
+    name: artillery
+    description: Visible artillery piece or self-propelled artillery form factor.
+  - id: 10
+    name: fixed_wing_aircraft
+    description: Fixed-wing aircraft, military or civilian.
+  - id: 11
+    name: helicopter
+    description: Rotary-wing aircraft.
+  - id: 12
+    name: small_uas
+    description: Visibly identifiable small uncrewed aircraft; uncertain distant specks are not labeled.
+  - id: 13
+    name: vessel
+    description: Boat or ship visible as a distinct object.
+  - id: 14
+    name: radar
+    description: Visibly recognizable radar antenna or radar installation, not inferred from captions.
+  - id: 15
+    name: ground_equipment
+    description: Other visually distinct ground support equipment that does not fit a class above.
+
+non_training_states:
+  - unknown
+  - needs_review
+
+source_term_mappings:
+  pedestrian: person
+  people: person
+  cyclist: bicycle
+  bicycle: bicycle
+  motorbike: motorcycle
+  motorcycle: motorcycle
+  sedan: car
+  suv: car
+  civilian car: car
+  minibus: van
+  cargo truck: truck
+  military truck: truck
+  main battle tank: tracked_armored_vehicle
+  tank: tracked_armored_vehicle
+  infantry fighting vehicle: tracked_armored_vehicle
+  armored personnel carrier: wheeled_armored_vehicle
+  howitzer: artillery
+  fighter aircraft: fixed_wing_aircraft
+  transport aircraft: fixed_wing_aircraft
+  civilian airliner: fixed_wing_aircraft
+  helicopter: helicopter
+  quadcopter: small_uas
+  drone: small_uas
+  ship: vessel
+  boat: vessel
+  radar antenna: radar
+
+search_profiles:
+  road_and_civilian_lookalikes:
+    viewpoint: [ground, oblique, aerial, overhead]
+    queries:
+      - civilian cars aerial view
+      - cargo truck overhead
+      - buses urban aerial
+      - construction equipment overhead
+      - emergency vehicle aerial view
+  armored_ground_objects:
+    viewpoint: [ground, oblique, aerial, overhead]
+    queries:
+      - tracked armored vehicle aerial view
+      - wheeled armored vehicle overhead
+      - tank training range aerial
+      - agricultural tracked vehicle overhead
+  aircraft_and_uas:
+    viewpoint: [ground, oblique, aerial]
+    queries:
+      - fixed wing aircraft apron aerial
+      - helicopter aerial view
+      - civilian helicopter landing
+      - small quadcopter in flight
+  maritime_and_sensors:
+    viewpoint: [ground, oblique, aerial, overhead]
+    queries:
+      - vessel overhead aerial
+      - civilian boat aerial
+      - radar antenna installation
+

@@ -113,6 +113,25 @@ Endpoints include `/health`, `/events`, `/events/latest`, `/tracks`, `/summary`,
 python -m pytest
 ```
 
+## Dataset collection and annotation (Part A)
+
+GarudaEdge includes a separate, provenance-first dataset pipeline for permitted public
+media and owned/licensed local sources. Large media, review state, CVAT staging, and
+versioned YOLO datasets are stored under `GARUDA_DATA_ROOT` (`~/GarudaEdgeData` by
+default), not in this checkout. Dataset dependencies are optional and are not installed
+with the edge inference runtime.
+
+```bash
+source venv/bin/activate
+python -m pip install -e ".[dataset]"
+garuda-dataset --help
+garuda-dataset stats
+```
+
+See [Part A dataset pipeline](docs/DATASET_BUILDING.md) for the exact 100–200 asset pilot,
+rights quarantine, human review and CVAT workflow, strict annotation import, deterministic
+build validation, disk sizing, backups, and the stable Python `data.yaml` lookup.
+
 ## Next Steps
 
 YOLO fine-tuning: collect domain-specific labeled public/synthetic imagery, train a small detector, evaluate mAP and false positives, then export to ONNX/TensorRT for edge deployment.

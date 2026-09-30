@@ -1,0 +1,33 @@
+version: 1
+data_root_env: GARUDA_DATA_ROOT
+default_data_root: ~/GarudaEdgeData
+selected_dataset: garuda_objects
+selected_version: latest
+
+datasets:
+  garuda_objects:
+    description: Broad object-detection taxonomy for human-reviewed GarudaEdge imagery.
+    taxonomy: configs/taxonomy/garuda_objects_v1.yaml
+    workspace: workspaces/garuda_objects
+    builds: datasets/garuda_objects
+    split:
+      train: 0.70
+      val: 0.20
+      test: 0.10
+      seed: 20260505
+    validation:
+      minimum_class_instances: 20
+      warn_below_class_instances: 100
+    deduplication:
+      perceptual_hash_distance: 6
+    media:
+      minimum_width: 320
+      minimum_height: 240
+      maximum_download_bytes: 524288000
+      request_timeout_seconds: 30
+      requests_per_second: 1.0
+    video:
+      frame_interval_seconds: 5.0
+      scene_change_threshold: 0.30
+      adjacent_hash_distance: 4
+      maximum_frames_per_video: 200

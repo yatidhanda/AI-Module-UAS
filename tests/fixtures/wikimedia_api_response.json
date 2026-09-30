@@ -1,0 +1,46 @@
+{
+  "batchcomplete": true,
+  "query": {
+    "pages": [
+      {
+        "pageid": 101,
+        "title": "File:Public domain aircraft.jpg",
+        "canonicalurl": "https://commons.wikimedia.org/wiki/File:Public_domain_aircraft.jpg",
+        "imageinfo": [
+          {
+            "url": "https://upload.wikimedia.org/example/public-domain-aircraft.jpg",
+            "mime": "image/jpeg",
+            "mediatype": "BITMAP",
+            "width": 1600,
+            "height": 900,
+            "extmetadata": {
+              "LicenseShortName": {"value": "Public domain"},
+              "LicenseUrl": {"value": "https://creativecommons.org/publicdomain/mark/1.0/"},
+              "Artist": {"value": "Fixture Creator"},
+              "ImageDescription": {"value": "Synthetic mocked provider response; no media bytes."}
+            }
+          }
+        ]
+      },
+      {
+        "pageid": 102,
+        "title": "File:Unclear rights.jpg",
+        "canonicalurl": "https://commons.wikimedia.org/wiki/File:Unclear_rights.jpg",
+        "imageinfo": [
+          {
+            "url": "https://upload.wikimedia.org/example/unclear-rights.jpg",
+            "mime": "image/jpeg",
+            "mediatype": "BITMAP",
+            "width": 1024,
+            "height": 768,
+            "extmetadata": {
+              "LicenseShortName": {"value": "Copyrighted; unclear reuse"},
+              "Artist": {"value": "Unknown"}
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+

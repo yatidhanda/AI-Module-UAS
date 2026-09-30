@@ -1,0 +1,13 @@
+{
+  "page_info": {"total_results": 1, "results_per_page": 1},
+  "results": [
+    {
+      "id": "image:12345",
+      "type": "image",
+      "title": "Mocked public government media result",
+      "credit": "Fixture Creator",
+      "url": "https://www.dvidshub.net/image/12345/mock"
+    }
+  ]
+}
+

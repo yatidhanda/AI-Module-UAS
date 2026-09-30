@@ -8,6 +8,17 @@ version = "0.1.0"
 description = "Human-in-the-loop UAS ISR fusion decision-support MVP"
 requires-python = ">=3.10"
 
+[project.optional-dependencies]
+dataset = [
+    "Pillow>=10",
+    "PyYAML>=6",
+    "requests>=2.31",
+    "opencv-python>=4.8",
+]
+
+[project.scripts]
+garuda-dataset = "garuda_edge.dataset_builder.cli:main"
+
 [tool.setuptools.packages.find]
 include = ["garuda_edge*"]
 
