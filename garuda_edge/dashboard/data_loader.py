@@ -367,6 +367,8 @@ def extract_geo(event: dict[str, Any]) -> dict[str, float | None]:
         "lat": _float_or_none(lat),
         "lon": _float_or_none(lon),
         "geo_uncertainty_m": _float_or_none(uncertainty),
+        "speed_mps": _float_or_none(geo.get("speed_mps")) if geo else None,
+        "heading_deg": _float_or_none(geo.get("heading_deg")) if geo else None,
     }
 
 
@@ -562,6 +564,8 @@ def _track_row(track_id: str, event: dict[str, Any]) -> dict[str, Any]:
         "latest_confidence": confidence_value,
         "confidence_level": confidence_level,
         "geo_uncertainty_m": geo["geo_uncertainty_m"],
+        "speed_mps": geo["speed_mps"],
+        "heading_deg": geo["heading_deg"],
         "latest_lat": geo["lat"],
         "latest_lon": geo["lon"],
         "last_decision": final_decision.get("decision") or "notify_operator",

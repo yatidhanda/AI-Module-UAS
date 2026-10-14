@@ -34,6 +34,7 @@ class Track(GarudaModel):
     track_age_frames: int
     track_stability: float = Field(ge=0.0, le=1.0)
     last_seen_timestamp_s: float
+    velocity_px_s: list[float] | None = None
 
 
 class TelemetryPacket(GarudaModel):
@@ -51,7 +52,8 @@ class TelemetryPacket(GarudaModel):
     groundspeed_mps: float | None = None
     gimbal_pan_deg: float
     gimbal_tilt_deg: float
-    battery_pct: float
+    gimbal_roll_deg: float | None = None
+    battery_pct: float | None = None
     packet_loss: float
     latency_ms: float
     link_quality: str | None = None
@@ -66,8 +68,10 @@ class TelemetryPacket(GarudaModel):
 class GeoEstimate(GarudaModel):
     estimated_lat: float
     estimated_lon: float
-    geo_uncertainty_m: float
+    geo_uncertainty_m: float  # approx. 1-sigma horizontal error
     method: str
+    speed_mps: float | None = None
+    heading_deg: float | None = None  # clockwise from north; None when stationary
 
 
 class ConfidenceResult(GarudaModel):
@@ -110,14 +114,17 @@ class ISREvent(GarudaModel):
     detection_confidence: float = Field(ge=0.0, le=1.0)
     track_age_frames: int
     track_stability: float = Field(ge=0.0, le=1.0)
+    bbox_velocity_px_s: list[float] | None = None
     platform: dict[str, Any]
     platform_state: dict[str, Any] | None = None
     link: dict[str, Any]
     geo_estimate: GeoEstimate
+    geo_raw_estimate: GeoEstimate | None = None
     confidence: ConfidenceResult
     analyst_model: str | None = None
     analyst_model_fallback_used: bool = False
     analyst_latency_ms: float | None = None
+    analyst_source_event_id: str | None = None  # event the attached analyst decision was computed from
     gemma_decision: GemmaDecision | None = None
     policy_result: PolicyResult | None = None
     threat_assessment: dict[str, Any] | None = None

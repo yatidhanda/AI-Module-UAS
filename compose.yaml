@@ -1,0 +1,55 @@
+# GarudaEdge services. All share one image and the host's ./data directory.
+#
+#   docker compose up -d                       # dashboard (:8501) + API (:8000)
+#   GARUDA_API_PORT=8010 docker compose up -d  # host ports are overridable (GARUDA_DASHBOARD_PORT too)
+#   docker compose run --rm pipeline \
+#       --video data/input_videos/sampleDronefootage.mov \
+#       --telemetry data/telemetry/demo_telemetry.csv --output data/outputs --use-gemma false
+#   docker compose run --rm api python -m pytest
+#
+# The pipeline reaches Ollama on the host (ollama serve) through host.docker.internal;
+# see docker/model.yaml. If Ollama is unreachable it records the safe fallback decision.
+
+x-garuda: &garuda
+  build: .
+  image: garuda-edge:latest
+  volumes:
+    - ./data:/app/data
+
+services:
+  dashboard:
+    <<: *garuda
+    ports:
+      - "${GARUDA_DASHBOARD_PORT:-8501}:8501"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  api:
+    <<: *garuda
+    command: ["uvicorn", "garuda_edge.api.server:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "${GARUDA_API_PORT:-8000}:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  # One-shot job: not started by `up`; run with `docker compose run --rm pipeline <args>`.
+  pipeline:
+    <<: *garuda
+    profiles: ["pipeline"]
+    entrypoint: ["python", "scripts/run_pipeline.py"]
+    command: ["--help"]
+    volumes:
+      - ./data:/app/data
+      - ./docker/model.yaml:/app/configs/model.yaml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

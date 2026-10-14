@@ -47,6 +47,25 @@ Configured fallback models:
 python scripts/generate_synthetic_telemetry.py --frames 1000 --fps 30 --output data/telemetry/demo_telemetry.csv
 ```
 
+Telemetry is smooth and seeded: `--profile hover` (default) holds position with small drift, `--profile transect` flies straight 4 m/s legs. It is synthetic and unrelated to the video, so any drone motion in it makes parked objects appear to move on the map.
+
+### Real flight telemetry (DJI .SRT)
+
+Many DJI drones record a `.SRT` subtitle file next to each video with GPS and altitude for every frame (enable video captions in DJI Fly/Pilot). Pass it directly:
+
+```bash
+python scripts/run_pipeline.py --video data/input_videos/DJI_0001.MP4 --telemetry data/input_videos/DJI_0001.SRT --use-gemma false \
+  --srt-gimbal-tilt-deg -60   # needed when the SRT has no gimbal angles (most consumer models)
+```
+
+Enterprise models record gimbal angles (`gb_yaw/gb_pitch/gb_roll`), which are used automatically. Otherwise the camera heading comes from the drone's direction of travel; pass `--srt-yaw-deg` for a hovering drone. Set `horizontal_fov_deg`/`vertical_fov_deg` in `configs/camera.yaml` to your camera.
+
+### Geolocation output
+
+Telemetry is interpolated to each frame's timestamp (angles along the shortest arc; no interpolation across gaps over 1 s). Geo uncertainty above 15 m counts as poor: it lowers confidence and blocks geo-lock (`max_geo_uncertainty_m: 15` in `configs/mission.yaml`).
+
+Each event's `geo_estimate` is a Kalman-filtered ground position of the box's bottom-centre, with `geo_uncertainty_m` (≈1σ, never below the drone's GPS error), `speed_mps`, and `heading_deg` (only when clearly moving). The unfiltered per-frame fix is kept in `geo_raw_estimate`. Ground is assumed flat; hills and slopes add error that is not modelled.
+
 ## Add Video
 
 Place your demo video at:
@@ -63,13 +82,20 @@ The pipeline fails with a clear error if the video path is missing.
 python scripts/run_pipeline.py --video data/input_videos/sampleDronefootage.mov --telemetry data/telemetry/demo_telemetry.csv --output data/outputs --max-frames 300 --use-gemma true
 ```
 
+The pipeline refuses to write into a folder that already holds a run (runs would mix, since track IDs restart at `T-0001`). Add `--overwrite` to replace it; `operator_actions.jsonl` is always kept. Useful flags:
+
+- `--gemma-async` runs Gemma on a background thread so slow LLM calls never stall the frame loop (for live feeds). Each event then carries the latest *finished* analysis for its track, `analyst_source_event_id` names the event it was computed from, and every analysis is logged to `analyst_decisions.jsonl`. The policy gate still validates every event.
+- `yolo_device` in `configs/model.yaml` (`auto` by default) picks CUDA, then the Apple GPU (`mps`), then CPU. Docker on macOS cannot reach the Apple GPU, so run natively for GPU speed.
+
 Outputs:
 
 - `data/outputs/events.jsonl`
 - `data/outputs/tracks.json`
 - `data/outputs/summary.json`
 - `data/outputs/annotated_demo.mp4`
-- `data/outputs/evidence/`
+- `data/outputs/evidence/` — one frame per new track and per confidence-level change
+- `data/outputs/analyst_decisions.jsonl` (with `--gemma-async`)
+- `data/outputs/track_states.jsonl` — Kalman-predicted box for every live track at `--track-output-hz` (default 1000 Hz; `0` disables). YOLO still runs once per video frame; between frames each track's constant-velocity filter extrapolates forward. These are kinematic states only: they create no events and do not go through Gemma or the policy gate.
 
 ## Dashboard
 

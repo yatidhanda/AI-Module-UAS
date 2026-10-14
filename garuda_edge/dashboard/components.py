@@ -323,6 +323,8 @@ def render_track_table(rows: list[dict[str, Any]]) -> None:
         "range_from_drone_m",
         "bearing_from_drone_deg",
         "geo_uncertainty_m",
+        "speed_mps",
+        "heading_deg",
         "last_decision",
         "human_review_required",
     ]
@@ -337,6 +339,9 @@ def render_track_table(rows: list[dict[str, Any]]) -> None:
         frame["bearing_from_drone_deg"] = frame["bearing_from_drone_deg"].map(lambda value: _format_table_number(value, 1))
     if "geo_uncertainty_m" in frame.columns:
         frame["geo_uncertainty_m"] = frame["geo_uncertainty_m"].map(lambda value: _format_table_number(value, 1))
+    for column in ("speed_mps", "heading_deg"):
+        if column in frame.columns:
+            frame[column] = frame[column].map(lambda value: _format_table_number(value, 1))
     st.dataframe(frame, use_container_width=True, hide_index=True)
 
 

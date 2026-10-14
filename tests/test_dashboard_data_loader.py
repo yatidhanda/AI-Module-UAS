@@ -43,7 +43,13 @@ def test_missing_gemma_and_geo_fields_are_safe():
     event = {"event_id": "E1", "frame_id": 1}
 
     assert extract_gemma_decision(event) == {}
-    assert extract_geo(event) == {"lat": None, "lon": None, "geo_uncertainty_m": None}
+    assert extract_geo(event) == {
+        "lat": None,
+        "lon": None,
+        "geo_uncertainty_m": None,
+        "speed_mps": None,
+        "heading_deg": None,
+    }
 
 
 def test_load_mission_context_with_missing_fields(tmp_path: Path):

@@ -2,6 +2,7 @@ ultralytics
 opencv-python
 supervision
 numpy
+scipy
 pandas
 pydantic
 pyyaml

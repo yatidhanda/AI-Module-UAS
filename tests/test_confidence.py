@@ -59,3 +59,14 @@ def test_bad_conditions_lower_confidence():
 def test_score_between_zero_and_one():
     result = score_confidence(track(), 0.1, tel(packet_loss=1), GeoEstimate(estimated_lat=1, estimated_lon=2, geo_uncertainty_m=999, method="x"), 10)
     assert 0 <= result.final_confidence <= 1
+
+
+def test_geo_uncertainty_penalty_starts_at_high_threshold():
+    def score(uncertainty):
+        geo = GeoEstimate(estimated_lat=1, estimated_lon=2, geo_uncertainty_m=uncertainty, method="x")
+        return score_confidence(track(), 0.9, tel(), geo, 0)
+
+    assert "geo_uncertainty_high" not in score(10).degraded_flags
+    assert score(10).final_confidence == score(15).final_confidence
+    assert "geo_uncertainty_high" in score(30).degraded_flags
+    assert score(30).final_confidence < score(15).final_confidence

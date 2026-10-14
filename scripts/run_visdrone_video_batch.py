@@ -78,6 +78,7 @@ def main() -> None:
                 str(max_frames),
                 "--use-gemma",
                 str(use_gemma).lower(),
+                "--overwrite",  # each batch run replaces the previous scenario results
             ]
         )
         print(f"Scenario output written to {output_dir}")

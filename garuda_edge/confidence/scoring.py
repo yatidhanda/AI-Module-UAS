@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from garuda_edge.geolocation.projection import HIGH_GEO_UNCERTAINTY_M
 from garuda_edge.ingestion.schemas import ConfidenceResult, GeoEstimate, TelemetryPacket, Track
 
 
@@ -46,8 +47,8 @@ def score_confidence(
     if telemetry.latency_ms > 300:
         score -= min(0.14, (telemetry.latency_ms - 300.0) / 1000.0)
         flags.append("latency_high")
-    if geo_estimate.geo_uncertainty_m > 60:
-        score -= min(0.20, (geo_estimate.geo_uncertainty_m - 60.0) / 200.0)
+    if geo_estimate.geo_uncertainty_m > HIGH_GEO_UNCERTAINTY_M:
+        score -= min(0.20, (geo_estimate.geo_uncertainty_m - HIGH_GEO_UNCERTAINTY_M) / 100.0)
         flags.append("geo_uncertainty_high")
     if telemetry.sensor_health != "nominal":
         score -= 0.12

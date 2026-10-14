@@ -1,5 +1,7 @@
 yolo_model: yolov8n.pt
 yolo_conf_threshold: 0.25
+# auto = CUDA if available, else Apple GPU (mps, native macOS only; not inside Docker), else cpu
+yolo_device: auto
 ollama_model: gemma4:e4b
 ollama_base_url: http://localhost:11434
 gemma_temperature: 0.1

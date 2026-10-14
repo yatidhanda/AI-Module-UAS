@@ -1,0 +1,15 @@
+# Compose-only copy of configs/model.yaml, mounted over it in the pipeline container.
+# Only ollama_base_url differs: inside a container, localhost is the container itself,
+# so Ollama running on the host is reached via host.docker.internal. Keep the other
+# keys in sync with configs/model.yaml.
+yolo_model: yolov8n.pt
+yolo_conf_threshold: 0.25
+yolo_device: auto
+ollama_model: gemma4:e4b
+ollama_base_url: http://host.docker.internal:11434
+gemma_temperature: 0.1
+gemma_call_interval_frames: 60
+ollama_timeout_s: 120
+ollama_fallback_models:
+  - gemma3:4b
+  - gemma3n:e4b

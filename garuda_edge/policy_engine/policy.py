@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from garuda_edge.ingestion.schemas import ConfidenceResult, GemmaDecision, PolicyResult
@@ -18,6 +19,31 @@ BLOCKED_KEYWORDS = [
     "launch",
     "destroy",
 ]
+
+# Whole words and their inflections, so "disengaged", "skilled" or "photoshoot" are not
+# flagged while "engaged", "firing" or "destroyed" still are.
+_BLOCKED_PATTERN = re.compile(
+    r"\b(?:"
+    r"engag(?:e|es|ed|ing|ement|ements)"
+    r"|fir(?:e|es|ed|ing)"
+    r"|attack(?:s|ed|ing|er|ers)?"
+    r"|strik(?:e|es|ing)"
+    r"|neutrali[sz](?:e|es|ed|ing|ation)"
+    r"|weapon(?:s|ry|ized|ised)?"
+    r"|lethal(?:ity|ly)?"
+    r"|kill(?:s|ed|ing|er|ers)?"
+    r"|shoot(?:s|ing|er|ers)?"
+    r"|launch(?:es|ed|ing|er|ers)?"
+    r"|destroy(?:s|ed|ing|er|ers)?"
+    r")\b",
+    re.IGNORECASE,
+)
+# Everyday phrases containing a blocked word (several are detector classes). Only the
+# exact phrase is exempt: "open fire" next to a fire hydrant is still blocked.
+_BENIGN_PHRASES = re.compile(
+    r"\bfire[ _-]?(?:hydrants?|trucks?|engines?|stations?|departments?|escapes?|lanes?|alarms?|fighters?)\b",
+    re.IGNORECASE,
+)
 
 
 class PolicyEngine:
@@ -116,5 +142,4 @@ def _contains_blocked_language(payload: Any) -> bool:
         return any(_contains_blocked_language(item) for item in payload)
     if payload is None:
         return False
-    text = str(payload).lower()
-    return any(keyword in text for keyword in BLOCKED_KEYWORDS)
+    return bool(_BLOCKED_PATTERN.search(_BENIGN_PHRASES.sub(" ", str(payload))))

@@ -33,6 +33,7 @@ class FusionEngine:
             detection_confidence=track.last_confidence,
             track_age_frames=track.track_age_frames,
             track_stability=track.track_stability,
+            bbox_velocity_px_s=track.velocity_px_s,
             platform={
                 "lat": telemetry.lat,
                 "lon": telemetry.lon,

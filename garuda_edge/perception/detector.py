@@ -10,13 +10,30 @@ except Exception:
 from garuda_edge.ingestion.schemas import Detection
 
 
+def resolve_device(device: str | None) -> str:
+    """Map "auto" (or nothing) to the fastest available torch backend: CUDA, Apple MPS, then CPU."""
+    if device and device.lower() != "auto":
+        return device
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            return "cuda"
+        mps = getattr(torch.backends, "mps", None)
+        if mps is not None and mps.is_available():
+            return "mps"
+    except Exception:
+        pass
+    return "cpu"
+
+
 class YOLODetector:
     """Thin adapter around Ultralytics YOLO for the fast visual loop."""
 
     def __init__(self, model_path: str = "yolov8n.pt", conf_threshold: float = 0.25, device: str | None = None):
         self.model_path = model_path
         self.conf_threshold = conf_threshold
-        self.device = device
+        self.device = resolve_device(device)
         self.model = None
         self.names: dict[int, str] = {}
         try:
@@ -24,6 +41,7 @@ class YOLODetector:
 
             self.model = YOLO(model_path)
             self.names = {int(k): str(v) for k, v in getattr(self.model, "names", {}).items()}
+            logger.info(f"YOLO model {model_path} on device {self.device}")
         except Exception as exc:
             logger.warning(f"YOLO model unavailable: {exc}")
 
@@ -31,9 +49,7 @@ class YOLODetector:
         if self.model is None:
             return []
         try:
-            kwargs = {"conf": self.conf_threshold, "verbose": False}
-            if self.device:
-                kwargs["device"] = self.device
+            kwargs = {"conf": self.conf_threshold, "verbose": False, "device": self.device}
             results = self.model.predict(frame, **kwargs)
         except Exception as exc:
             logger.warning(f"YOLO prediction failed on frame {frame_id}: {exc}")

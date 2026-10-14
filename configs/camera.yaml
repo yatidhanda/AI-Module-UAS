@@ -2,3 +2,9 @@ horizontal_fov_deg: 70
 vertical_fov_deg: 43
 default_alt_m: 80
 default_gimbal_tilt_deg: -45
+# Radial lens distortion (0 = ideal pinhole); fill from an OpenCV calibration.
+k1: 0.0
+k2: 0.0
+# 1-sigma errors used to derive geo_uncertainty_m.
+attitude_sigma_deg: 1.0
+altitude_sigma_m: 2.0

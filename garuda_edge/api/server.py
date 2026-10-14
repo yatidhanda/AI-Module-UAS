@@ -7,10 +7,12 @@ from typing import Any
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from garuda_edge.policy_engine.policy import PolicyEngine
 from garuda_edge.storage.event_store import EventStore
 
 app = FastAPI(title="GarudaEdge ISR Fusion Module API")
 store = EventStore()
+policy = PolicyEngine()
 
 
 class OperatorAction(BaseModel):
@@ -59,6 +61,12 @@ def summary() -> dict[str, Any]:
 
 @app.post("/operator-action")
 def operator_action(action: OperatorAction) -> dict[str, str]:
+    _, corrections = policy.validate_operator_action(action.action)
+    if corrections:
+        raise HTTPException(
+            status_code=422,
+            detail={"error": "action_not_allowed", "action": action.action, "allowed_actions": sorted(policy.allowed_actions)},
+        )
     path = Path("data/outputs/operator_actions.jsonl")
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as fp:

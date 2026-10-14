@@ -130,7 +130,7 @@ context_modifiers:
     max_confidence: 0.45
     penalty: 15
   high_geo_uncertainty_penalty:
-    min_uncertainty_m: 60
+    min_uncertainty_m: 15
     penalty: 10
   degraded_link_bonus_for_ew_categories:
     categories: [electronic_warfare, sensor_system, air_defense]

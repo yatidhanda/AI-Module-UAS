@@ -14,6 +14,7 @@ from garuda_edge.dashboard.data_loader import (
     extract_threat_assessment,
 )
 from garuda_edge.dashboard.ownship import extract_platform_state
+from garuda_edge.geolocation.projection import HIGH_GEO_UNCERTAINTY_M
 
 
 def compute_dashboard_metrics(
@@ -48,7 +49,7 @@ def compute_dashboard_metrics(
 def build_alerts(events: list[dict[str, Any]], active_tracks: list[dict[str, Any]]) -> list[dict[str, str]]:
     low_conf = [track for track in active_tracks if track.get("confidence_level") == "low"]
     high_uncertainty = [
-        track for track in active_tracks if (track.get("geo_uncertainty_m") is not None and track["geo_uncertainty_m"] >= 50)
+        track for track in active_tracks if (track.get("geo_uncertainty_m") is not None and track["geo_uncertainty_m"] >= HIGH_GEO_UNCERTAINTY_M)
     ]
     degraded_flags = sorted({flag for event in events for flag in extract_degraded_flags(event)})
     corrections = sum(len(extract_policy_corrections(event)) for event in events)

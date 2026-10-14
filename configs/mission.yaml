@@ -26,7 +26,7 @@ geo_lock_objectives:
     - van
     - car
   min_confidence: 0.60
-  max_geo_uncertainty_m: 60
+  max_geo_uncertainty_m: 15
   min_track_age_frames: 30
   require_human_review: true
 
